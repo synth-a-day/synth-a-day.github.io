@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Color and Tone with Volume Control</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif; /* Added for consistent font */
+            transition: background-color 0.3s ease; /* Smooth transition for background color change */
+        }
+        .volume-slider {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            background-color: #ffffff;
+            border: 1px solid #cccccc;
+            padding: 10px;
+            border-radius: 10px; /* Rounded corners */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: block; /* Initially visible */
+            opacity: 0.9; /* Slightly transparent */
+            transition: opacity 0.3s ease; /* Smooth transition for opacity */
+        }
+        .volume-slider:hover {
+            opacity: 1; /* Fully opaque on hover */
+        }
+        .volume-slider label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #333333;
+        }
+        .volume-slider input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            appearance: none;
+            background-color: #eeeeee;
+            height: 8px;
+            border-radius: 5px;
+            outline: none;
+            transition: background-color 0.3s ease; /* Smooth transition for background color */
+        }
+        .volume-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #007bff;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .volume-slider input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #007bff;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .instructions-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 18px;
+            z-index: 1000; /* Higher z-index to ensure it's on top */
+        }
+        .instructions-content {
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #333333;
+        }
+        .instructions-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            border: none;
+            color: #ffffff;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .instructions-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions-overlay" id="instructionsOverlay">
+        <div class="instructions-content">
+            <p>Click once to dial tone and set volume control, hides automatically.</p>
+            <p>Press Spacebar to change background colour.</p>
+            <button class="instructions-button" onclick="closeInstructions()">Ok, cool!</button>
+        </div>
+    </div>
+
+    <div class="volume-slider" id="volumeSlider">
+        <label for="volume">Volume:</label>
+        <input type="range" id="volume" min="0" max="1" step="0.01" value="0.2"> <!-- Set initial volume to 0.2 -->
+    </div>
+
+    <script>
+        let volume = 0.2; // Initial volume set to 0.2
+        let volumeChanged = false; // Flag to track volume change
+        let hideVolumeTimeout; // Timeout variable to track hide timer
+
+        function playTone(frequency) {
+            const context = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = context.createOscillator();
+            const gainNode = context.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, context.currentTime);
+            gainNode.gain.value = volume;
+            oscillator.connect(gainNode);
+            gainNode.connect(context.destination);
+            oscillator.start();
+            oscillator.stop(context.currentTime + 1); // Play the tone for 1 second
+        }
+
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function getRandomFrequency() {
+            return Math.floor(Math.random() * (2000 - 200) + 200); // Frequency between 200Hz and 2000Hz
+        }
+
+        function hideVolumeControl() {
+            const volumeSlider = document.getElementById('volumeSlider');
+            volumeSlider.style.display = 'none';
+        }
+
+        function showVolumeControl() {
+            const volumeSlider = document.getElementById('volumeSlider');
+            volumeSlider.style.display = 'block';
+            // Reset the hide timer
+            clearTimeout(hideVolumeTimeout);
+            hideVolumeTimeout = setTimeout(hideVolumeControl, 7000); // 7 seconds timeout
+        }
+
+        function closeInstructions() {
+            const instructionsOverlay = document.getElementById('instructionsOverlay');
+            instructionsOverlay.style.display = 'none'; // Hide the overlay
+        }
+
+        document.body.addEventListener('click', () => {
+            if (!volumeChanged) {
+                const color = getRandomColor();
+                const frequency = getRandomFrequency();
+                document.body.style.backgroundColor = color;
+                playTone(frequency);
+            }
+            volumeChanged = false; // Reset volume change flag after background change
+            showVolumeControl(); // Show volume control after background change
+        });
+
+        document.getElementById('volume').addEventListener('input', (event) => {
+            volume = event.target.value;
+            volumeChanged = true; // Set volume change flag
+            showVolumeControl(); // Show volume control when interacting with it
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === ' ') { // Spacebar key
+                const color = getRandomColor();
+                document.body.style.backgroundColor = color;
+            }
+        });
+
+        // Show instructions overlay on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const instructionsOverlay = document.getElementById('instructionsOverlay');
+            instructionsOverlay.style.display = 'flex'; // Show the overlay
+        });
+    </script>
+</body>
+</html>
